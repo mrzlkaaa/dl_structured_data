@@ -7,28 +7,33 @@ import os
 url = "http://storage.googleapis.com/download.tensorflow.org/data/petfinder-mini.zip"
 file_name = "petfinder-mini.csv"
 
+
 def load_csv(url):
-    path = tf.keras.utils.get_file("petfinder_mini.zip", url, extract=True, cache_subdir="")
+    path = tf.keras.utils.get_file(
+        "petfinder_mini.zip", url, extract=True, cache_subdir="")
     print(os.listdir(os.path.split(path)[0]))
-    file_path = os.path.join(os.path.split(path)[0], "petfinder-mini", file_name)
+    file_path = os.path.join(os.path.split(
+        path)[0], "petfinder-mini", file_name)
     # file_path = os.path.join(os.path.split(path)[0], "datasets/petfinder-mini", file_name)
     csv = pd.read_csv(file_path)
     return csv
 
+
 class PreprocessPetFinder:
-    def __init__(self, df, target, *to_drop): #* target = AdoptionSpeed
+    def __init__(self, df, target, *to_drop):  # * target = AdoptionSpeed
         self.df = self.drop_unused(df, to_drop)
         self.train, self.val, self.test = self.split_df()
         self.target = target
         self.df_colsdata = self.get_df_colsdata()
-        
+
         # self.df_train, self.df_val, self.df_train
 
-    def target_labels(self)
+    # def target_from_label(self, *target):
+    #     return
 
-    def drop_unused(self, df, to_drop):
+    def drop_unused(self, df, to_drop, *target):
         print(to_drop)
-        # df['AdoptionSpeed'] = np.where(df['AdoptionSpeed']==4, 0, 1)
+        # df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1)
         new_df = df.drop(columns=list(to_drop))
         # print(new_df)
         new_df = new_df.dropna()
@@ -43,15 +48,16 @@ class PreprocessPetFinder:
                 return "string"
             case "int64":
                 return "int64"
-        return
+            case _:
+                raise ValueError
 
     def get_df_colsdata(self, format_dtype=True):
-        #* populate the dictionary with info as follows: key - col_name, values - col_name, dtype
-        #* avaliable optional formatting of dtype according on given data type in dataframe
+        # * populate the dictionary with info as follows: key - col_name, values - col_name, dtype
+        # * avaliable optional formatting of dtype according on given data type in dataframe
         cols_data = dict()
         for i in range(len(self.df.columns)):
-            cols_data[self.df.columns[i]] = {"name": self.df.columns[i], 
-                    "dtype":self.format_dtype(self.df.dtypes[i]) if format_dtype else self.df.dtypes[i]}
+            cols_data[self.df.columns[i]] = {"name": self.df.columns[i],
+                                             "dtype": self.format_dtype(self.df.dtypes[i]) if format_dtype else self.df.dtypes[i]}
         # print(cols_data)
         return cols_data
 
@@ -64,7 +70,8 @@ class PreprocessPetFinder:
 
     def df_to_ds(self, df):
         df_featured, labels = self.drop_target_col(df)
-        extended_df = {key:value[:,tf.newaxis] for key, value in df_featured.items()}
+        extended_df = {key: value[:, tf.newaxis]
+                       for key, value in df_featured.items()}
         ds = tf.data.Dataset.from_tensor_slices((extended_df, labels))
         ds = ds.shuffle(buffer_size=len(df_featured))
         ds = ds.batch(32)
@@ -72,7 +79,7 @@ class PreprocessPetFinder:
         return ds
 
     def encode_numerical(self, ds, name):
-        #* ds consists of numerical data and labels
+        # * ds consists of numerical data and labels
         feature = ds.map(lambda x, y: x[name])
         norm = Normalization(axis=None)
         norm.adapt(feature)
@@ -85,20 +92,20 @@ class PreprocessPetFinder:
         elif dtype == "int64":
             indexes = IntegerLookup(max_tokens=max_tokens)
         indexes.adapt(feature)
-        encoder = CategoryEncoding(num_tokens=indexes.vocabulary_size(),  output_mode="one_hot")
+        encoder = CategoryEncoding(
+            num_tokens=indexes.vocabulary_size(),  output_mode="one_hot")
         return lambda f: encoder(indexes(f))
-        
 
     def make_input_layer(self, name, dtype):
         return tf.keras.Input(shape=(1,), name=name, dtype=dtype)
 
     def ds_encode(self, ds):
-        #* consider 2 different data types: numerical, categorical
-        #* make input layer and apply encoding on it
-        numerical_colsdata = {key:value for key, value in self.df_colsdata.items()
-            if key in ["Age", "PhotoAmt", "Fee"]}
-        categorical_colsdata = {key:value for key, value in self.df_colsdata.items()
-            if not key in ["Age", "PhotoAmt", "Fee", "AdoptionSpeed"]}
+        # * consider 2 different data types: numerical, categorical
+        # * make input layer and apply encoding on it
+        numerical_colsdata = {key: value for key, value in self.df_colsdata.items()
+                              if key in ["Age", "PhotoAmt", "Fee"]}
+        categorical_colsdata = {key: value for key, value in self.df_colsdata.items()
+                                if not key in ["Age", "PhotoAmt", "Fee", "AdoptionSpeed"]}
         input_layers = []
         encoded_layers = []
 
@@ -118,12 +125,3 @@ class PreprocessPetFinder:
             encoded_layers.append(encoded_col)
 
         return input_layers, encoded_layers
-
-        
-        
-        
-
-
-
-
-    
