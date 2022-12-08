@@ -24,6 +24,8 @@ class PreprocessPetFinder:
         
         # self.df_train, self.df_val, self.df_train
 
+    def target_labels(self)
+
     def drop_unused(self, df, to_drop):
         print(to_drop)
         # df['AdoptionSpeed'] = np.where(df['AdoptionSpeed']==4, 0, 1)
@@ -43,11 +45,13 @@ class PreprocessPetFinder:
                 return "int64"
         return
 
-    def get_df_colsdata(self):
+    def get_df_colsdata(self, format_dtype=True):
+        #* populate the dictionary with info as follows: key - col_name, values - col_name, dtype
+        #* avaliable optional formatting of dtype according on given data type in dataframe
         cols_data = dict()
         for i in range(len(self.df.columns)):
             cols_data[self.df.columns[i]] = {"name": self.df.columns[i], 
-                            "dtype":self.format_dtype(self.df.dtypes[i])}
+                    "dtype":self.format_dtype(self.df.dtypes[i]) if format_dtype else self.df.dtypes[i]}
         # print(cols_data)
         return cols_data
 
@@ -114,59 +118,6 @@ class PreprocessPetFinder:
             encoded_layers.append(encoded_col)
 
         return input_layers, encoded_layers
-
-    def model_setup_sparse(self, input_layers, encoded_layers):
-        features = tf.keras.layers.concatenate(encoded_layers)
-        x = tf.keras.layers.Dense(256)(features)
-        # x = tf.keras.layers.Dropout(0.2)(x)
-        x = tf.keras.layers.Dense(128)(x)
-        x = tf.keras.layers.Dropout(0.4)(x)
-        x = tf.keras.layers.Dense(32)(x)
-        x = tf.keras.layers.Dropout(0.7)(x)
-        x = tf.keras.layers.Dense(5)(x)
-        model = tf.keras.Model(input_layers, x)
-        # model = tf.keras.Sequential()
-        # model.add(input_layers)
-        # model.add(features)
-        # model.add(tf.keras.layers.Dense(64))
-        # model.add(tf.keras.layers.Dropout(0.2))
-        # model.add(tf.keras.layers.Dense(4))
-        model.summary()
-        return model
-
-    def model_compilers_sparse(self, model):
-        model.compile(optimizer="adam",
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
-        metrics=["accuracy"]
-        )
-        return model
-
-    def model_setup_binary(self, input_layers, encoded_layers):
-        features = tf.keras.layers.concatenate(encoded_layers)
-        # x = tf.keras.layers.Dense(128)(features)
-        # x = tf.keras.layers.Dropout(0.2)(x)
-        x = tf.keras.layers.Dense(32)(features)
-        x = tf.keras.layers.Dropout(0.5)(x)
-        x = tf.keras.layers.Dense(1)(x)
-        model = tf.keras.Model(input_layers, x)
-        # model = tf.keras.Sequential()
-        # model.add(input_layers)
-        # model.add(features)
-        # model.add(tf.keras.layers.Dense(64))
-        # model.add(tf.keras.layers.Dropout(0.2))
-        # model.add(tf.keras.layers.Dense(4))
-        model.summary()
-        return model
-
-    def model_compilers_binary(self, model):
-        model.compile(optimizer="adam",
-        loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        metrics=["accuracy"]
-        )
-        return model
-
-    def model_fit(self, model, ds):
-        model.fit(ds, epochs=10)
 
         
         
