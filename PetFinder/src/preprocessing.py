@@ -31,8 +31,7 @@ class PreprocessPetFinder:
     # def target_from_label(self, *target):
     #     return
 
-    def drop_unused(self, df, to_drop, *target):
-        print(to_drop)
+    def drop_unused(self, df, to_drop):
         # df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1)
         new_df = df.drop(columns=list(to_drop))
         # print(new_df)
@@ -63,9 +62,11 @@ class PreprocessPetFinder:
 
     def drop_target_col(self, df):
         df_featured = df.copy()
-        labels = df_featured.pop(self.target)
-        print(self.df_colsdata)
-        self.df_colsdata.pop(self.target)
+        try:
+            labels = df_featured.pop(self.target)
+            self.df_colsdata.pop(self.target)
+        except KeyError:
+            print("col is removed already")
         return df_featured, labels
 
     def df_to_ds(self, df):

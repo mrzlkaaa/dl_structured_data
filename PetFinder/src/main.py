@@ -1,4 +1,7 @@
+from preprocessing import PreprocessPetFinder, load_csv
 import tensorflow as tf
+
+url = "http://storage.googleapis.com/download.tensorflow.org/data/petfinder-mini.zip"
 
 
 class Model:
@@ -33,11 +36,25 @@ class Model:
 
     def model_compiler(self, model):
         model.compile(optimizer="adam",
-        #? pick the loss based on task via switch
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False), 
-        # loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        metrics=["accuracy"]
-        )
+                      # ? pick the loss based on task via switch
+                      loss=tf.keras.losses.SparseCategoricalCrossentropy(
+                          from_logits=False),
+                      # loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+                      metrics=["accuracy"]
+                      )
         return model
-    
-    
+
+
+if __name__ == "__main__":
+    csv = load_csv(url)
+    PPF = PreprocessPetFinder(csv, "AdoptionSpeed", "Description")
+    train = PPF.df_to_ds(PPF.train)
+    val = PPF.df_to_ds(PPF.val)
+    test = PPF.df_to_ds(PPF.test)
+    train_inp, train_decoded = PPF.ds_encode(train)
+
+    M = Model()
+    model = M.model_setup_sparse(
+        input_layers=train_inp, encoded_layers=train_decoded)
+    model = M.model_compiler(model)
+    model.fit(train, epochs=10, validation_data=val)
