@@ -22,21 +22,25 @@ def load_csv(url):
 class PreprocessPetFinder:
     def __init__(self, df, target, *to_drop):  # * target = AdoptionSpeed
         self.df = self.drop_unused(df, to_drop)
-        self.train, self.val, self.test = self.split_df()
+        # self.train, self.val, self.test = self.split_df()
         self.target = target
         self.df_colsdata = self.get_df_colsdata()
-
-        # self.df_train, self.df_val, self.df_train
 
     # def target_from_label(self, *target):
     #     return
 
     def drop_unused(self, df, to_drop):
-        # df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1)
+        df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1)
         new_df = df.drop(columns=list(to_drop))
         # print(new_df)
         new_df = new_df.dropna()
         return new_df
+
+    #* calls before df splitting
+    def increasing_df(self, frac):
+        sampled_df = self.df.sample(frac=frac, random_state=123)
+        self.df = pd.concat([self.df, sampled_df])
+
 
     def split_df(self):
         return np.split(self.df, [int(0.8*len(self.df)), int(0.9*len(self.df))])
@@ -112,7 +116,7 @@ class PreprocessPetFinder:
 
         for i in categorical_colsdata.values():
             input_layer = self.make_input_layer(i["name"], i["dtype"])
-            print(type(input_layer))
+            # print(type(input_layer))
             encoding_layer = self.encode_categorical(ds, i["name"], i["dtype"])
             encoded_col = encoding_layer(input_layer)
             input_layers.append(input_layer)

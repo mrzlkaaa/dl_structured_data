@@ -18,7 +18,8 @@ def PPF(csv):
 
 @pytest.fixture
 def train_ds(PPF):
-    train = PPF.df_to_ds(PPF.train)
+    train_df, _, _ = PPF.split_df()
+    train = PPF.df_to_ds(train_df)
     return train
 
 
