@@ -30,7 +30,7 @@ class PreprocessPetFinder:
     #     return
 
     def drop_unused(self, df, to_drop):
-        df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1)
+        # df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1) #* enabled only for binary classification
         new_df = df.drop(columns=list(to_drop))
         # print(new_df)
         new_df = new_df.dropna()

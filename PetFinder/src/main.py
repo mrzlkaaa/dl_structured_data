@@ -1,42 +1,49 @@
 from preprocessing import PreprocessPetFinder, load_csv
 import tensorflow as tf
+from tensorflow.keras.callbacks import LearningRateScheduler
 
 url = "http://storage.googleapis.com/download.tensorflow.org/data/petfinder-mini.zip"
-
+tf.random.set_seed(42)
 
 class Model:
     def __init__(self):
         return
 
-    def model_setup_sparse(self, **layers):
+    #? apply callback and find best lr for both binary and multiclass classifications
+    def callback_lr(self):
+        return LearningRateScheduler(lambda x: 0.001*10**(x/20))
+        
+
+    def model_setup_sparse(self, **layers): #* 84% accuracy on test ds a quick setup (still can be simply improved)
         encoded_layers = layers.get('encoded_layers')
         input_layers = layers.get('input_layers')
         features = tf.keras.layers.concatenate(encoded_layers)
-        x = tf.keras.layers.Dense(32, activation="elu")(features)
-        x = tf.keras.layers.Dropout(0.2)(x)
-        x = tf.keras.layers.Dense(32, activation="elu")(x)
-        x = tf.keras.layers.Dropout(0.2)(x)
+        x = tf.keras.layers.Dense(512, activation="relu")(features)
+        x = tf.keras.layers.Dense(512, activation="relu")(x)
+        x = tf.keras.layers.Dense(256, activation="relu")(x)
         # x = tf.keras.layers.Dense(16)(x)
         # x = tf.keras.layers.Dropout(0.5)(x)
-        x = tf.keras.layers.Dense(5)(x)
+        x = tf.keras.layers.Dense(5, activation="softmax")(x)
         model = tf.keras.Model(input_layers, x)
         model.summary()
         return model
 
-    def model_setup_binary(self, **layers):
+    def model_setup_binary(self, **layers): #* 94% accuracy on test ds (still can be simply improved)
         encoded_layers = layers.get('encoded_layers')
         input_layers = layers.get('input_layers')
         features = tf.keras.layers.concatenate(encoded_layers)
-        x = tf.keras.layers.Dense(32)(features)
-        x = tf.keras.layers.Dense(32)(features)
-        # x = tf.keras.layers.Dropout(0.5)(x)
-        x = tf.keras.layers.Dense(1)(x)
+        x = tf.keras.layers.Dense(512, activation="relu")(features)
+        x = tf.keras.layers.Dense(512, activation="relu")(x)
+        x = tf.keras.layers.Dense(512, activation="relu")(x)
+        # x = tf.keras.layers.Dense(64, activation="relu")(x)
+        # x = tf.keras.layers.Dropout(0.4)(x)
+        x = tf.keras.layers.Dense(1, activation='sigmoid')(x)
         model = tf.keras.Model(input_layers, x)
         model.summary()
         return model
 
     def model_compiler_sparse(self, model):
-        model.compile(optimizer=tf.keras.optimizers.Adam(),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005),
                       # ? pick the loss based on task via switch
                       loss=tf.keras.losses.SparseCategoricalCrossentropy(
                           from_logits=False),
@@ -59,7 +66,6 @@ class Model:
 if __name__ == "__main__":
     csv = load_csv(url)
     PPF = PreprocessPetFinder(csv, "AdoptionSpeed", "Description")
-    PPF.increasing_df(0.7)
     train_df, val_df, test_df = PPF.split_df()
     train = PPF.df_to_ds(train_df)
     val = PPF.df_to_ds(val_df)
@@ -67,10 +73,10 @@ if __name__ == "__main__":
     train_inp, train_decoded = PPF.ds_encode(train)
 
     M = Model()
-    # model = M.model_setup_sparse(
-    #     input_layers=train_inp, encoded_layers=train_decoded)
-    # model = M.model_compiler_sparse(model)
-    model = M.model_setup_binary(
+    model = M.model_setup_sparse(
         input_layers=train_inp, encoded_layers=train_decoded)
-    model = M.model_compiler_binary(model)
-    model.fit(train, epochs=10, validation_data=val)
+    model = M.model_compiler_sparse(model)
+    # model = M.model_setup_binary(
+    #     input_layers=train_inp, encoded_layers=train_decoded)
+    # model = M.model_compiler_binary(model)
+    model.fit(train, epochs=50, validation_data=val)
