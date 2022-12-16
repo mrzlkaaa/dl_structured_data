@@ -1,6 +1,10 @@
 from preprocessing import PreprocessPetFinder, load_csv
 import tensorflow as tf
 from tensorflow.keras.callbacks import LearningRateScheduler
+from matplotlib import pyplot as plt
+import pandas as pd
+import numpy as np
+from vizualize_fit.main import FitVisualizer
 
 url = "http://storage.googleapis.com/download.tensorflow.org/data/petfinder-mini.zip"
 tf.random.set_seed(42)
@@ -14,7 +18,7 @@ class Model:
         return LearningRateScheduler(lambda x: 0.001*10**(x/20))
         
 
-    def model_setup_sparse(self, **layers): #* 84% accuracy on test ds a quick setup (still can be simply improved)
+    def model_setup_sparse(self, **layers): #* 84% accuracy with 50 epochs on test ds a quick setup (still can be simply improved)
         encoded_layers = layers.get('encoded_layers')
         input_layers = layers.get('input_layers')
         features = tf.keras.layers.concatenate(encoded_layers)
@@ -28,13 +32,18 @@ class Model:
         model.summary()
         return model
 
-    def model_setup_binary(self, **layers): #* 94% accuracy on test ds (still can be simply improved)
+    def model_setup_binary(self, **layers): #* 94% accuracy with 50 epochs on test ds (still can be simply improved)
         encoded_layers = layers.get('encoded_layers')
         input_layers = layers.get('input_layers')
         features = tf.keras.layers.concatenate(encoded_layers)
-        x = tf.keras.layers.Dense(512, activation="relu")(features)
-        x = tf.keras.layers.Dense(512, activation="relu")(x)
-        x = tf.keras.layers.Dense(512, activation="relu")(x)
+        x = tf.keras.layers.Dense(32, activation="relu")(features)
+        x = tf.keras.layers.Dropout(0.4)(x)
+        x = tf.keras.layers.Dense(32, activation="relu")(x)
+        x = tf.keras.layers.Dropout(0.4)(x)
+        x = tf.keras.layers.Dense(32, activation="relu")(x)
+        x = tf.keras.layers.Dropout(0.4)(x)
+        x = tf.keras.layers.Dense(32, activation="relu")(x)
+        x = tf.keras.layers.Dropout(0.4)(x)
         # x = tf.keras.layers.Dense(64, activation="relu")(x)
         # x = tf.keras.layers.Dropout(0.4)(x)
         x = tf.keras.layers.Dense(1, activation='sigmoid')(x)
@@ -57,11 +66,10 @@ class Model:
                       # ? pick the loss based on task via switch
                     #   loss=tf.keras.losses.SparseCategoricalCrossentropy(
                     #       from_logits=False),
-                      loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+                      loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
                       metrics=["accuracy"]
                       )
         return model
-
 
 if __name__ == "__main__":
     csv = load_csv(url)
@@ -73,10 +81,17 @@ if __name__ == "__main__":
     train_inp, train_decoded = PPF.ds_encode(train)
 
     M = Model()
-    model = M.model_setup_sparse(
-        input_layers=train_inp, encoded_layers=train_decoded)
-    model = M.model_compiler_sparse(model)
-    # model = M.model_setup_binary(
+    # model = M.model_setup_sparse(
     #     input_layers=train_inp, encoded_layers=train_decoded)
-    # model = M.model_compiler_binary(model)
-    model.fit(train, epochs=50, validation_data=val)
+    # model = M.model_compiler_sparse(model)
+    model = M.model_setup_binary(
+        input_layers=train_inp, encoded_layers=train_decoded)
+    model = M.model_compiler_binary(model)
+    epochs = 50
+    history = model.fit(train, epochs=epochs, validation_data=val)
+    #* save data as a plot
+    fv = FitVisualizer()
+    fv.plot(history.history, epochs)
+    fv.savefig()
+
+
