@@ -3,6 +3,7 @@ from tensorflow.keras.layers import StringLookup, IntegerLookup, Normalization, 
 import pandas as pd
 import numpy as np
 import os
+from matplotlib import pyplot as plt
 
 url = "http://storage.googleapis.com/download.tensorflow.org/data/petfinder-mini.zip"
 file_name = "petfinder-mini.csv"
@@ -35,6 +36,18 @@ class PreprocessPetFinder:
         # print(new_df)
         new_df = new_df.dropna()
         return new_df
+
+    #* drops row from df by key and column
+    def drop_rows_by_key(self, column, key):
+        self.df = self.df[self.df[column] != key]
+
+    #* visualization of numerical dependencies with respect to target col
+    def visualize_data(self, col_name1, col_name2): #* for binary classification it vizualizes as a bin plot
+        plt.scatter(self.df[col_name1], self.df[col_name2], alpha=0.2)
+        plt.savefig("scatter.png")
+
+
+
 
     #* calls before df splitting
     def increasing_df(self, frac):
