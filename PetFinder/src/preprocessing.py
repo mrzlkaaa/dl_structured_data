@@ -31,29 +31,31 @@ class PreprocessPetFinder:
     #     return
 
     def drop_unused(self, df, to_drop):
-        df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1) #* enabled only for binary classification
+        # * enabled only for binary classification
+        df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1)
         new_df = df.drop(columns=list(to_drop))
         # print(new_df)
         new_df = new_df.dropna()
         return new_df
 
-    #* drops row from df by key and column
+    # * drops row from df by key and column
     def drop_rows_by_key(self, column, key):
         self.df = self.df[self.df[column] != key]
 
-    #* visualization of numerical dependencies with respect to target col
-    def visualize_data(self, col_name1, col_name2): #* for binary classification it vizualizes as a bin plot
+    def filter_by_key(self, col, key):
+        self.df = self.df[self.df[col] < key]
+        # print(self.df)
+
+    # * visualization of numerical dependencies with respect to target col
+    # * for binary classification it vizualizes as a bin plot
+    def visualize_data_scatter(self, col_name1, col_name2):
         plt.scatter(self.df[col_name1], self.df[col_name2], alpha=0.2)
         plt.savefig("scatter.png")
 
-
-
-
-    #* calls before df splitting
+    # * calls before df splitting
     def increasing_df(self, frac):
         sampled_df = self.df.sample(frac=frac, random_state=123)
         self.df = pd.concat([self.df, sampled_df])
-
 
     def split_df(self):
         return np.split(self.df, [int(0.8*len(self.df)), int(0.9*len(self.df))])
@@ -99,7 +101,7 @@ class PreprocessPetFinder:
     def encode_numerical(self, ds, name):
         # * ds consists of numerical data and labels
         feature = ds.map(lambda x, y: x[name])
-        norm = Normalization(axis=None)
+        norm = Normalization(axis=1)
         norm.adapt(feature)
         return norm
 
