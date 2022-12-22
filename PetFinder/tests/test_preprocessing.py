@@ -5,6 +5,9 @@ import numpy as np
 
 url = "http://storage.googleapis.com/download.tensorflow.org/data/petfinder-mini.zip"
 
+#* ['Type', 'Age', 'Breed1', 'Gender', 'Color1', 'Color2', 'MaturitySize',
+#*  'FurLength', 'Vaccinated', 'Sterilized', 'Health', 'Fee', 'PhotoAmt',
+#*  'AdoptionSpeed']
 
 @pytest.fixture
 def csv():
@@ -15,6 +18,12 @@ def csv():
 def PPF(csv):
     return PreprocessPetFinder(csv, "AdoptionSpeed", "Description")
 
+
+def test_ppf_general(PPF):
+    print(PPF.df.head())
+    print(PPF.df.columns)
+    print(PPF.df[["Color1", "Color2", "MaturitySize", "FurLength"]])
+    assert 0
 
 @pytest.fixture
 def train_ds(PPF):
@@ -72,4 +81,19 @@ def test_categorical_encode(PPF, train_ds):
     for v, _ in train_ds:
         print(encoding_layer(v["Type"]))
     # print(encodeding_layer(train_feature))
+    assert 0
+
+def test_get_imbalance(PPF):
+    res = PPF.df["AdoptionSpeed"].value_counts()
+    print(res[0]/res[1])
+    assert 0
+
+def test_visualize_data(PPF):
+    PPF.visualize_data("Age", "Fee")
+    assert 0
+
+def test_drop_rows_by_key(PPF):
+    print(PPF.df)
+    PPF.drop_rows_by_key("Type", "Cat")
+    print(PPF.df)
     assert 0
