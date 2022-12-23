@@ -22,41 +22,75 @@ def load_csv(url):
 
 class PreprocessPetFinder:
     def __init__(self, df, target, *to_drop):  # * target = AdoptionSpeed
-        self.df = self.drop_unused(df, to_drop)
+        self._df = self.drop_unused(df, to_drop)
         # self.train, self.val, self.test = self.split_df()
         self.target = target
         self.df_colsdata = self.get_df_colsdata()
 
     # def target_from_label(self, *target):
     #     return
+    @property
+    def df(self):
+        return self._df
+
+    @df.setter
+    def df(self, val):
+        self._df = val
+
 
     def drop_unused(self, df, to_drop):
-        df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1) #* enabled only for binary classification
+        # * enabled only for binary classification
+        # df['AdoptionSpeed'] = np.where(df['AdoptionSpeed'] == 4, 0, 1)
         new_df = df.drop(columns=list(to_drop))
         # print(new_df)
         new_df = new_df.dropna()
         return new_df
 
-    #* drops row from df by key and column
+    # * drops row from df by key and column
     def drop_rows_by_key(self, column, key):
         self.df = self.df[self.df[column] != key]
 
-    #* visualization of numerical dependencies with respect to target col
-    def visualize_data(self, col_name1, col_name2): #* for binary classification it vizualizes as a bin plot
-        plt.scatter(self.df[col_name1], self.df[col_name2], alpha=0.2)
-        plt.savefig("scatter.png")
+    def filter_by_pet_age(self, upper_age_value):
+        self.df = self.df[self.df["Age"] < upper_age_value]
 
-
-
-
-    #* calls before df splitting
+    # * calls before df splitting
     def increasing_df(self, frac):
         sampled_df = self.df.sample(frac=frac, random_state=123)
         self.df = pd.concat([self.df, sampled_df])
 
+    def manual_undersampling(self, frac):
+        pos = self.df.copy()
+        neg = self.df.copy()
+
+        pos = pos[pos["AdoptionSpeed"] == 1]
+        neg = neg[neg["AdoptionSpeed"] == 0]
+
+        print(len(pos))
+        pos = pos.sample(frac=frac)
+        print(len(pos))
+        print(len(neg))
+        df = pd.concat([pos, neg])
+        for _ in range(5):
+            df = df.sample(frac=1)
+        return df
+
+    def manual_oversampling(self):
+        pos = self.df.copy()
+        neg = self.df.copy()
+        pos = pos[pos["AdoptionSpeed"] == 1]
+        neg = neg[neg["AdoptionSpeed"] == 0]
+        print(len(neg))
+        neg = neg.sample(n=len(neg)*3, random_state=101, replace=True)
+        print(len(pos))
+        print(len(neg))
+        df = pd.concat([pos, neg])
+        for _ in range(5):
+            df = df.sample(frac=1)
+        return df
 
     def split_df(self):
         return np.split(self.df, [int(0.8*len(self.df)), int(0.9*len(self.df))])
+        # return np.split(self.df, [int(0.7*len(self.df)), int(0.8*len(self.df))])
 
     def format_dtype(self, dtype):
         match dtype:
@@ -92,14 +126,27 @@ class PreprocessPetFinder:
                        for key, value in df_featured.items()}
         ds = tf.data.Dataset.from_tensor_slices((extended_df, labels))
         ds = ds.shuffle(buffer_size=len(df_featured))
-        ds = ds.batch(32)
+        ds = ds.batch(64)
         # print(ds)
         return ds
+
+    #* Binning <Age> column
+    #* 1 - puppy/kitten [0,6]
+    #* 2 - Juveniles (6, 12]
+    #* 3 - Young Adults (12, 24]
+    #* 4 - Adults (24, 84]
+    #* 5 - Mature (84, 144]
+    #* 6 - Mature (144, inf]
+    def binning_feature(self, col):
+        bins = [0, 6, 12, 24, 84, 144] #* must be as a func argument
+        labels = [1, 2, 3, 4, 5] #* must be as a func argument
+        self.df[f"{col}"] = pd.cut(self.df[col], bins=bins, labels=labels)
+        print(self.df)
 
     def encode_numerical(self, ds, name):
         # * ds consists of numerical data and labels
         feature = ds.map(lambda x, y: x[name])
-        norm = Normalization(axis=None)
+        norm = Normalization(axis=1)
         norm.adapt(feature)
         return norm
 
@@ -121,9 +168,9 @@ class PreprocessPetFinder:
         # * consider 2 different data types: numerical, categorical
         # * make input layer and apply encoding on it
         numerical_colsdata = {key: value for key, value in self.df_colsdata.items()
-                              if key in ["Age", "PhotoAmt", "Fee"]}
+                              if key in ["PhotoAmt", "Fee"]}
         categorical_colsdata = {key: value for key, value in self.df_colsdata.items()
-                                if not key in ["Age", "PhotoAmt", "Fee", "AdoptionSpeed"]}
+                                if not key in ["PhotoAmt", "Fee", "AdoptionSpeed"]}
         input_layers = []
         encoded_layers = []
 
